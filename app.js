@@ -1,81 +1,50 @@
+const debug = require('debug')('app:startup');
+const config = require('config');
+const helmet = require('helmet');
+const morgan = require('morgan');
 const Joi = require('joi');
+const logger = require('./middleware/logger');
+const auth = require('./middleware/auth');
+const mongoose = require('mongoose');
 const express = require('express');
 const app = express();
+const genres = require('./routes/genres');
+const home = require('./routes/home');
+const customers = require('./routes/customers');
+
+app.set('view engine', 'pug');
+app.set('views','./views');
+
+mongoose.connect('mongodb://localhost/vidly')
+    .then(()=> console.log('Connected to MongoDB'))
+    .catch(err => console.error('Couldn\'t connect to MongoDB'));
 
 app.use(express.json());
+app.use(express.urlencoded({extended: true}));
+app.use(express.static('public'));
+app.use(helmet());
+app.use('/api/genres',genres);
+app.use('/api/customers',customers);
+app.use('/',home);
 
-const genres =[
-    {id: 1, name: 'Thriller'},
-    {id: 2, name: 'Horror'},
-    {id: 3, name: 'Mystery'}
-];
+// Configuration
 
-// Simple Saying "Hello World" for home page
-app.get('/',(req, res) => {
-    res.send('Hello World')
-});
+console.log("Application Name: " + config.get('name'));
+console.log("Mail Server: " + config.get('mail.host'));
+console.log("Mail Password: " + config.get('mail.password'));
 
-// Get all the genres
-app.get('/api/genres',(req, res) => {
-    res.send(genres);
-});
-
-//Get the particular genre using its ID
-app.get('/api/genres/:id',(req, res) => {
-    const genre = genres.find(gen => gen.id === parseInt(req.params.id))
-    if(!genre) return res.status(404).send('Not Found');
-    res.send(genre);
-});
-
-
-// Create a new genre
-app.post('/api/genres',(req, res) => {
-    const {error} = validateGenre(req.body);
-    if(error) return res.status(400).send(error.details[0].message);
-
-    const genre ={
-        id : genres.length+1,
-        name : req.body.name
-    }
-    genres.push(genre);
-    res.send(genre);
-});
-
-// Update the particular genre 
-app.put('/api/genres/:id',(req, res) => {
-    const genre = genres.find(gen => gen.id === parseInt(req.params.id))
-    if(!genre) return res.status(404).send('Not Found');
-
-    const {error} = validateGenre(req.body);
-    if(error) return res.status(400).send(error.details[0].message);
-
-    genre.name = req.body.name;
-    res.send(genre);
-});
-
-app.delete('/api/genres/:id',(req, res) =>{
-    const genre = genres.find(gen => gen.id === parseInt(req.params.id))
-    if(!genre) return res.status(404).send('Not Found');
-
-    const index = genres.indexOf(genre);
-    genres.splice(index, 1);
-
-    res.send(genre);
-});
-
-
-// Validate the Input (Req.body)
-function validateGenre(genre){
-    const schema = Joi.object({
-        name : Joi.string().min(3).required(),
-    });
-    return schema.validate(genre);
-
+if(app.get('env') === 'development'){
+    app.use(morgan('tiny'));
+    debug('Morgan Enabled...');
 }
 
 
+app.use(logger);
+app.use(auth);
+
+
 // Get the System's Default port for Listen the server OR set it to 3000
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8888;
 
 // Initiate the Server
 app.listen(port,()=>console.log(`Listening on port ${port}`));
