@@ -11,9 +11,12 @@ const app = express();
 const genres = require('./routes/genres');
 const home = require('./routes/home');
 const customers = require('./routes/customers');
+const movies = require('./routes/movies');
+const rentals = require('./routes/rentals');
 
 app.set('view engine', 'pug');
 app.set('views','./views');
+
 
 mongoose.connect('mongodb://localhost/vidly')
     .then(()=> console.log('Connected to MongoDB'))
@@ -25,6 +28,8 @@ app.use(express.static('public'));
 app.use(helmet());
 app.use('/api/genres',genres);
 app.use('/api/customers',customers);
+app.use('/api/movies',movies);
+app.use('/api/rentals',rentals);
 app.use('/',home);
 
 // Configuration
