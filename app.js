@@ -1,10 +1,11 @@
+const Joi = require('joi');
+Joi.objectId = require('joi-objectid')(Joi);
 const debug = require('debug')('app:startup');
 const config = require('config');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const Joi = require('joi');
 const logger = require('./middleware/logger');
-const auth = require('./middleware/auth');
+// const auth = require('./middleware/auth');
 const mongoose = require('mongoose');
 const express = require('express');
 const app = express();
@@ -13,6 +14,8 @@ const home = require('./routes/home');
 const customers = require('./routes/customers');
 const movies = require('./routes/movies');
 const rentals = require('./routes/rentals');
+const users = require('./routes/users');
+const auth = require('./routes/auth');
 
 app.set('view engine', 'pug');
 app.set('views','./views');
@@ -30,25 +33,23 @@ app.use('/api/genres',genres);
 app.use('/api/customers',customers);
 app.use('/api/movies',movies);
 app.use('/api/rentals',rentals);
+app.use('/api/users',users);
+app.use('/api/auth', auth);
 app.use('/',home);
 
 // Configuration
 
-console.log("Application Name: " + config.get('name'));
-console.log("Mail Server: " + config.get('mail.host'));
-console.log("Mail Password: " + config.get('mail.password'));
-
-if(app.get('env') === 'development'){
-    app.use(morgan('tiny'));
-    debug('Morgan Enabled...');
+if(!config.get('jwtPrivateKey')){
+    console.error('FATEL ERROR: jwtPrivateKey is not defined');
+    process.exit(1);
 }
 
 
+
 app.use(logger);
-app.use(auth);
+// app.use(auth);
 
 
-// Get the System's Default port for Listen the server OR set it to 3000
 const port = process.env.PORT || 8888;
 
 // Initiate the Server
